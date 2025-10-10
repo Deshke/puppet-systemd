@@ -329,6 +329,7 @@ class systemd (
   Systemd::ServiceManagerSettings                     $user_settings = {},
 ) {
   contain systemd::install
+  contain systemd::systemctl::daemon_reload
 
   if $default_target {
     $target = stdlib::shell_escape($default_target)
