@@ -96,10 +96,18 @@ define systemd::unit_file (
     $_target = $target
   }
 
+  # Backed out usage of stdlib::ensure since it is not present until stdlib version 8.5.0
+  # See https://github.com/voxpupuli/puppet-systemd/commit/7f63dfa49850a860b24a93874fe5c5f4430f9edc
   if $_target {
-    $_ensure = stdlib::ensure($ensure, 'link')
+    $_ensure = $ensure ? {
+      'absent' => 'absent',
+      default  => 'link',
+    }
   } else {
-    $_ensure = stdlib::ensure($ensure, 'file')
+    $_ensure = $ensure ? {
+      'present' => 'file',
+      default   => $ensure,
+    }
   }
 
   file { "${path}/${name}":
