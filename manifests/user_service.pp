@@ -40,8 +40,6 @@ define systemd::user_service (
   Boolean $global = false,
   Optional[String[1]] $user = undef,
 ) {
-  include systemd
-
   $_ensure = $ensure ? {
     'stopped' => false,
     'running' => true,
@@ -80,7 +78,7 @@ define systemd::user_service (
       $_systemctl_user = "systemd-run --pipe --wait --user --machine ${user}@.host systemctl --user"
       $_exec_user = undef
     } else {
-      $_systemctl_user = "env XDG_RUNTIME_DIR=/run/user/\$(id -u) /usr/bin/systemctl --user"
+      $_systemctl_user = 'env XDG_RUNTIME_DIR=/run/user/$(id -u) /usr/bin/systemctl --user'
       $_exec_user = $user
     }
 
@@ -88,6 +86,7 @@ define systemd::user_service (
     exec { "try-reload-or-restart-${user}-${unit}":
       command     => "${_systemctl_user} try-reload-or-restart ${unit}",
       refreshonly => true,
+      user        => $_exec_user,
       path        => $facts['path'],
     }
 
