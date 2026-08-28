@@ -40,6 +40,8 @@ define systemd::user_service (
   Boolean $global = false,
   Optional[String[1]] $user = undef,
 ) {
+  include systemd
+
   $_ensure = $ensure ? {
     'stopped' => false,
     'running' => true,
@@ -74,7 +76,13 @@ define systemd::user_service (
     }
   } else { # per user services
 
-    $_systemctl_user = "systemd-run --pipe --wait --user --machine ${user}@.host systemctl --user"
+    if Integer($facts['systemd_version']) >= 244 {
+      $_systemctl_user = "systemd-run --pipe --wait --user --machine ${user}@.host systemctl --user"
+      $_exec_user = undef
+    } else {
+      $_systemctl_user = "env XDG_RUNTIME_DIR=/run/user/\$(id -u) /usr/bin/systemctl --user"
+      $_exec_user = $user
+    }
 
     # To accept notifies of this type.
     exec { "try-reload-or-restart-${user}-${unit}":
@@ -102,6 +110,7 @@ define systemd::user_service (
       command => $_ensure_command,
       unless  => $_ensure_unless,
       onlyif  => $_ensure_onlyif,
+      user    => $_exec_user,
       path    => $facts['path'],
     }
 
@@ -127,6 +136,7 @@ define systemd::user_service (
       command => $_enable_command,
       unless  => $_enable_unless,
       onlyif  => $_enable_onlyif,
+      user    => $_exec_user,
       path    => $facts['path'],
     }
   }
